@@ -1,5 +1,5 @@
 #pragma once
-#if ENABLE_I3 && ENABLE_MPD && ENABLE_NETWORK && ENABLE_ALSA && ENABLE_PULSEAUDIO && ENABLE_CURL && ENABLE_XKEYBOARD
+#if ENABLE_I3 && ENABLE_DWM && ENABLE_MPD && ENABLE_NETWORK && ENABLE_ALSA && ENABLE_PULSEAUDIO && ENABLE_CURL && ENABLE_XKEYBOARD
 #error "Support has been enabled for all optional modules"
 #endif
 
@@ -33,6 +33,9 @@ namespace modules {
 
 #if not ENABLE_I3
   DEFINE_UNSUPPORTED_MODULE(i3_module, "internal/i3");
+#endif
+#if not ENABLE_DWM
+  DEFINE_UNSUPPORTED_MODULE(dwm_module, "internal/dwm");
 #endif
 #if not ENABLE_MPD
   DEFINE_UNSUPPORTED_MODULE(mpd_module, "internal/mpd");

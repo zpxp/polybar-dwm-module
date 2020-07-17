@@ -25,6 +25,9 @@
 #if ENABLE_I3
 #include "modules/i3.hpp"
 #endif
+#if ENABLE_DWM
+#include "modules/dwm.hpp"
+#endif
 #if ENABLE_MPD
 #include "modules/mpd.hpp"
 #endif
@@ -43,7 +46,7 @@
 #if ENABLE_XKEYBOARD
 #include "modules/xkeyboard.hpp"
 #endif
-#if not(ENABLE_I3 && ENABLE_MPD && ENABLE_NETWORK && ENABLE_ALSA && ENABLE_PULSEAUDIO && ENABLE_CURL && ENABLE_XKEYBOARD)
+#if not(ENABLE_I3 && ENABLE_DWM && ENABLE_MPD && ENABLE_NETWORK && ENABLE_ALSA && ENABLE_PULSEAUDIO && ENABLE_CURL && ENABLE_XKEYBOARD)
 #include "modules/unsupported.hpp"
 #endif
 
@@ -65,6 +68,8 @@ namespace {
       return new cpu_module(bar, move(module_name));
     } else if (name == "internal/date") {
       return new date_module(bar, move(module_name));
+    } else if (name == "internal/dwm") {
+      return new dwm_module(bar, move(module_name));
     } else if (name == "internal/github") {
       return new github_module(bar, move(module_name));
     } else if (name == "internal/fs") {
