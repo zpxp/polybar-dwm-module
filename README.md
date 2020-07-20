@@ -1,4 +1,7 @@
 # polybar-dwm-module
+![DWM
+Module](https://github.com/mihirlad55/polybar-dwm-module/blob/master/dwm-module.png)
+
 **polybar-dwm-module** is a fork of
 [polybar](https://github.com/polybar/polybar) which implements a dwm module.
 
