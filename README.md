@@ -66,7 +66,7 @@ Clone, make, and install polybar. Follow the on screen prompts in the `build.sh`
 script and enable any additional features you want.
 ```
 $ git clone https://github.com/mihirlad55/polybar-dwm-module
-$ cd polybar
+$ cd polybar-dwm-module
 $ ./build.sh -d
 ```
 
