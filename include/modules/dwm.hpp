@@ -56,11 +56,11 @@ namespace modules {
     auto input(string&& cmd) -> bool override;
 
    private:
-    static constexpr const char* DEFAULT_FORMAT_TAGS{"<label-state> <label-layout> <label-title>"};
+    static constexpr const char* DEFAULT_FORMAT_TAGS{"<label-tags> <label-layout> <label-floating> <label-title>"};
     static constexpr const char* DEFAULT_STATE_LABEL{"%name%"};
 
     /**
-     * The state label is used to represent a tag. This label is replaced by one
+     * The tags label is replaced with the tags. Each tag is displayed using one
      * of the following labels based on the tag state:
      *   * label-focused
      *   * label-unfocused
@@ -68,7 +68,7 @@ namespace modules {
      *   * label-urgent
      *   * label-empty
      */
-    static constexpr const char* TAG_LABEL_STATE{"<label-state>"};
+    static constexpr const char* TAG_LABEL_TAGS{"<label-tags>"};
 
     /**
      * The layout label is replaced by the current layout symbol
@@ -76,22 +76,35 @@ namespace modules {
     static constexpr const char* TAG_LABEL_LAYOUT{"<label-layout>"};
 
     /**
+     * The floating label is shown when the selected window is floating
+     */
+    static constexpr const char* TAG_LABEL_FLOATING{"<label-floating>"};
+
+    /**
      * The title layout is replaced by the currently focused window title
      */
     static constexpr const char* TAG_LABEL_TITLE{"<label-title>"};
 
+    /**
+     * All input handler commands start with this
+     */
     static constexpr const char* EVENT_PREFIX{"dwm-"};
 
     /**
-     * Event name is same as the IPC command name to view the tag clicked on
+     * DWM command for changing the view to a tag with the specified bit mask
      */
-    static constexpr const char* EVENT_LCLICK{"view"};
+    static constexpr const char* CMD_TAG_VIEW{"view"};
 
     /**
-     * Event name is same as IPC command name to toggle the view of the tag
-     * clicked on
+     * DWM command for toggling the selected state of a tag with the specified
+     * bit mask
      */
-    static constexpr const char* EVENT_RCLICK{"toggleview"};
+    static constexpr const char* CMD_TAG_TOGGLE_VIEW{"toggleview"};
+
+    /**
+     * DWM command for setting the layout to a layout specified by the address
+     */
+    static constexpr const char* CMD_LAYOUT_SET{"setlayoutsafe"};
 
     /**
      * Called by has_event on layout changes. This updates the layout label
@@ -133,6 +146,14 @@ namespace modules {
     void on_focused_title_change(const dwmipc::FocusedTitleChangeEvent& ev);
 
     /**
+     * Called by has_event when the state of the currently focused window
+     * changes. This updates the floating label.
+     *
+     * @param ev Event data
+     */
+    void on_focused_state_change(const dwmipc::FocusedStateChangeEvent& ev);
+
+    /**
      * Get a list of monitors from dwm, store them in m_monitors, and update the
      * pointers to the active monitor and bar monitor.
      *
@@ -146,12 +167,30 @@ namespace modules {
     void update_tag_labels();
 
     /**
-     * Get the window title of the specified client from dwm and update the
-     * title label
+     * Update the title label with the specified title
      *
-     * @param client_id The window XID of the client
+     * @param title The title to use to update the label
      */
-    void update_title_label(window_t client_id);
+    void update_title_label(const string& title);
+
+    /**
+     * Get the window title of the currently focused client from dwm and update
+     * the title label
+     */
+    void update_title_label();
+
+    /**
+     * Query dwm to determine if the currently focused client and update
+     * m_is_floating
+     */
+    void update_floating_label();
+
+    /**
+     * Update the layout label with the specified symbol
+     *
+     * @param symbol The symbol to use to update the label
+     */
+    void update_layout_label(const string& symbol);
 
     /**
      * Translate the tag's tag states to a state_t enum value
@@ -163,17 +202,52 @@ namespace modules {
     auto get_state(tag_mask_t bit_mask) const -> state_t;
 
     /**
-     * Check if the command matches the specified event name and if so, send a
-     * command to dwm after parsing the command.
+     * Get the address to the layout represented by the symbol.
+     */
+    auto find_layout(const string& sym) const -> const dwmipc::Layout*;
+
+    /**
+     * Get the address to the layout represented by the address.
+     */
+    auto find_layout(uintptr_t addr) const -> const dwmipc::Layout*;
+
+    /**
+     * Get the address of the next layout in m_layouts.
+     *
+     * @param layout Address of the current layout
+     * @param wrap True to wrap around the array, false to return the same
+     *   layout if the next layout does not exist.
+     */
+    auto next_layout(const dwmipc::Layout& layout, bool wrap) const -> const dwmipc::Layout*;
+
+    /**
+     * Get the address of the previous layout in m_layouts.
+     *
+     * @param layout Address of the current layout
+     * @param wrap True to wrap around the array, false to return the same
+     *   layout if the next layout does not exist.
+     */
+    auto prev_layout(const dwmipc::Layout& layout, bool wrap) const -> const dwmipc::Layout*;
+
+    /**
+     * Check if the command matches the specified IPC command name and if so,
+     * parse and send the command to dwm
      *
      * @param cmd The command string given by dwm_modue::input
-     * @param ev_name The name of the event to check for (should be the same as
-     *   the dwm command name)
+     * @param ipc_cmd The name of dwm IPC command to check for
      *
      * @return true if the command matched, was succesfully parsed, and sent to
      *   dwm, false otherwise
      */
-    auto check_send_cmd(string cmd, const string& ev_name) -> bool;
+    auto check_send_cmd(string cmd, const string& ipc_cmd) -> bool;
+
+    /**
+     * Helper function to build cmd string
+     *
+     * @param ipc_cmd The dwm IPC command name
+     * @param arg The argument to the dwm command
+     */
+    auto static build_cmd(const char* ipc_cmd, const string& arg) -> string;
 
     /**
      * Attempt to connect to any disconnected dwm sockets. Catch errors.
@@ -183,7 +257,54 @@ namespace modules {
     /**
      * If true, enables the click handlers for the tags
      */
-    bool m_click{true};
+    bool m_tags_click{true};
+
+    /**
+     * If true, enables the click handlers for the layout label
+     */
+    bool m_layout_click{true};
+
+    /**
+     * If true, scrolling the layout cycle through available layouts
+     */
+    bool m_layout_scroll{true};
+
+    /**
+     * If true, scrolling the layout will wrap around to the beginning
+     */
+    bool m_layout_wrap{true};
+
+    /**
+     * If true, scrolling the layout will cycle layouts in the reverse direction
+     */
+    bool m_layout_reverse{false};
+
+    /**
+     * If true, show floating label
+     */
+    bool m_is_floating{false};
+
+    /**
+     * If the layout symbol is clicked on, it will set the layout represented by
+     * this symbol. The default is monocle mode [M].
+     */
+    string m_secondary_layout_symbol{"[M]"};
+
+    /**
+     * Holds the address to the secondary layout specified by the secondary
+     * layout symbol
+     */
+    const dwmipc::Layout* m_secondary_layout = nullptr;
+
+    /**
+     * Holds the address to the current layout
+     */
+    const dwmipc::Layout* m_current_layout = nullptr;
+
+    /**
+     * Holds the address to the default layout
+     */
+    const dwmipc::Layout* m_default_layout = nullptr;
 
     /**
      * Holds the address to the currently active monitor in the m_monitors array
@@ -206,6 +327,11 @@ namespace modules {
     label_t m_layout_label;
 
     /**
+     * Shown when currently focused window is floating
+     */
+    label_t m_floating_label;
+
+    /**
      * Inserted between tags
      */
     label_t m_seperator_label;
@@ -223,7 +349,12 @@ namespace modules {
     /**
      * Vector of monitors returned by m_ipc->get_monitors
      */
-    shared_ptr<std::vector<dwmipc::Monitor>> m_monitors;
+    shared_ptr<vector<dwmipc::Monitor>> m_monitors;
+
+    /**
+     * Vector of layouts returned by m_ipc->get_layouts
+     */
+    shared_ptr<vector<dwmipc::Layout>> m_layouts;
 
     /**
      * Maps state_t enum values to their corresponding labels
