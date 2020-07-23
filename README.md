@@ -20,18 +20,26 @@ fixes some weird quirks that you may experience without it.
 
 ## The DWM Module
 The dwm module currently supports the following:
-- Display dwm tags
-- Display the current layout
-- Display the currently focused window title (per monitor)
-- Left-click to view tag
-- Right-click to toggle view on tag
+- Labels:
+    * Display dwm tags
+        - Separator label between tags
+    * Display the current layout
+    * Display the currently focused window title (per monitor)
+    * Display label when focused window is floating
+- Click Handlers:
+    * Tags:
+        - Left-click tag to view tag
+        - Right-click tag to toggle view on tag
+    * Layout:
+        - Left-click to set `secondary-layout` (specified in config)
+        - Right-click to set previous layout
+        - Scroll to cycle through layouts (with wrapping and reverse scroll)
 - Different formatting for different tag states:
     * Focused: selected tag on selected monitor
     * Unfocused: selected tag on unselected monitor
     * Visible: unselected, but occupied tag on any monitor
     * Urgent: Unselected tag with window that has the urgent hint set
     * Empty: Unselected and unoccupied tags
-- Separator label between tags
 - The combined power of polybar
 
 
@@ -91,25 +99,48 @@ modules-left = ... dwm ...
 
 ...
 
-[module/dwm]
 type = internal/dwm
-format = <label-state> <label-layout> <label-title>
+format = <label-tags> <label-layout> <label-floating> <label-title>
 
-enable-click = false
+; Left-click to view tag, right-click to toggle tag view
+enable-tags-click = false
+; Left-click to set secondary layout, right-click to switch to previous layout
+enable-layout-click = false
+; Scroll to cycle between available layouts
+enable-layout-scroll = false
+; Wrap when scrolling and reaching begining/end of layouts
+layout-scroll-wrap = false
+; Reverse scroll direction
+layout-scroll-reverse = false
 
-; State
+; If enable-layout-click = true, clicking the layout symbol will switch to this layout
+secondary-layout-symbol = [M]
+
+; Separator in between shown tags
+; label-separator = |
+
+; Title of currently focused window
 ; Available tokens:
-;   %name%
-
+;   %title%
 label-title = %title%
 label-title-padding = 2
 label-title-forefround = ${colors.primary}
 label-title-maxlen = 30
 
-label-layout = %layout%
+; Symbol of current layout
+; Available tokens:
+;   %symbol%
+label-layout = %symbol%
 label-layout-padding = 2
 label-layout-foreground = #000
 label-layout-background = ${colors.primary}
+
+; Text to show when currently focused window is floating
+label-floating = F
+
+; States: focused, unfocused, visible, urgent, empty
+; Available tokens:
+;   %name%
 
 ; focused = Active tag on focused monitor
 label-focused = %name%
@@ -137,9 +168,6 @@ label-urgent-padding = 2
 label-empty = %name%
 label-empty-background = ${colors.primary}
 label-empty-padding = 2
-
-; Separator in between workspaces
-; label-separator = |
 ```
 
 
