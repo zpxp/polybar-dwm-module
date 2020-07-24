@@ -25,7 +25,12 @@ namespace modules {
       throw module_error("Could not find socket: " + (socket_path.empty() ? "<empty>" : socket_path));
     }
 
-    m_ipc = factory_util::unique<dwmipc::Connection>(socket_path);
+    try {
+      m_ipc = factory_util::unique<dwmipc::Connection>(socket_path);
+    } catch (const dwmipc::IPCError& err) {
+      throw module_error(err.what());
+    }
+    m_log.info("%s: Connected to dwm socket", name());
 
     // Load configuration
     m_formatter->add(
@@ -66,8 +71,12 @@ namespace modules {
     m_layout_reverse = m_conf.get(name(), "layout-scroll-reverse", m_layout_reverse);
     m_secondary_layout_symbol = m_conf.get(name(), "secondary-layout-symbol", m_secondary_layout_symbol);
 
+    m_log.info("%s: Initialized formatter and labels", name());
+
     try {
       update_monitor_ref();
+      m_log.info("%s: Initialized monitors", name());
+
       m_focused_client_id = m_bar_mon->clients.selected;
 
       if (m_formatter->has(TAG_LABEL_TAGS)) {
@@ -83,23 +92,22 @@ namespace modules {
         // This event is for keeping track of the tag states
         m_ipc->on_tag_change = [this](const dwmipc::TagChangeEvent& ev) { this->on_tag_change(ev); };
         m_ipc->subscribe(dwmipc::Event::TAG_CHANGE);
-      }
-
-      if (m_floating_label) {
-        update_floating_label();
+        m_log.info("%s: Initialized tags", name());
       }
 
       if (m_layout_label) {
-        auto layouts = m_ipc->get_layouts();
         m_layouts = m_ipc->get_layouts();
 
         // First layout is treated as default by dwm
         m_default_layout = &m_layouts->at(0);
         m_current_layout = find_layout(m_bar_mon->layout.address.cur);
-        m_secondary_layout = find_layout(m_secondary_layout_symbol);
 
-        if (m_secondary_layout == nullptr) {
-          throw module_error("Secondary layout symbol does not exist");
+        if (m_layout_click) {
+          m_secondary_layout = find_layout(m_secondary_layout_symbol);
+
+          if (m_secondary_layout == nullptr) {
+            throw module_error("Secondary layout symbol does not exist");
+          }
         }
 
         // Initialize layout symbol
@@ -108,6 +116,7 @@ namespace modules {
         // This event is only needed to update the layout label
         m_ipc->on_layout_change = [this](const dwmipc::LayoutChangeEvent& ev) { on_layout_change(ev); };
         m_ipc->subscribe(dwmipc::Event::LAYOUT_CHANGE);
+        m_log.info("%s: Initialized layout label", name());
       }
 
       // These events are only necessary to update the focused window title
@@ -122,6 +131,7 @@ namespace modules {
           this->on_focused_title_change(ev);
         };
         m_ipc->subscribe(dwmipc::Event::FOCUSED_TITLE_CHANGE);
+        m_log.info("%s: Initialized title label", name());
       }
 
       if (m_floating_label) {
@@ -130,6 +140,7 @@ namespace modules {
           this->on_focused_state_change(ev);
         };
         m_ipc->subscribe(dwmipc::Event::FOCUSED_STATE_CHANGE);
+        m_log.info("%s: Initialized floating label", name());
       }
 
       // This event is for keeping track of the currently focused monitor
@@ -137,6 +148,7 @@ namespace modules {
         this->on_monitor_focus_change(ev);
       };
       m_ipc->subscribe(dwmipc::Event::MONITOR_FOCUS_CHANGE);
+        m_log.info("%s: Subscribed to monitor focus change", name());
     } catch (const dwmipc::IPCError& err) {
       throw module_error(err.what());
     }
@@ -145,7 +157,7 @@ namespace modules {
   void dwm_module::stop() {
     try {
       m_log.info("%s: Disconnecting from socket", name());
-      m_ipc.reset();
+      m_ipc.reset(nullptr);
     } catch (...) {
     }
 
@@ -175,14 +187,18 @@ namespace modules {
   }
 
   auto dwm_module::build(builder* builder, const string& tag) const -> bool {
+    m_log.info("%s: Building module", name());
     if (tag == TAG_LABEL_TITLE) {
+      m_log.info("%s: Building title", name());
       builder->node(m_title_label);
     } else if (tag == TAG_LABEL_FLOATING) {
       if (!m_is_floating) {
         return true;
       }
+      m_log.info("%s: Building floating label", name());
       builder->node(m_floating_label);
     } else if (tag == TAG_LABEL_LAYOUT) {
+      m_log.info("%s: Building layout label", name());
       if (m_layout_click) {
         // Toggle between secondary and default layout
         auto addr = (m_current_layout == m_default_layout ? m_secondary_layout : m_default_layout)->address;
@@ -209,6 +225,7 @@ namespace modules {
         builder->cmd_close();
       }
     } else if (tag == TAG_LABEL_TAGS) {
+      m_log.info("%s: Building tags label", name());
       bool first = true;
       for (const auto& tag : m_tags) {
         // Don't insert separator before first tag
