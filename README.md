@@ -47,8 +47,8 @@ The dwm module currently supports the following:
 First, apply all the patches you want on dwm, saving the IPC patch for last.
 
 Optionally, apply the [dwm-anybar
-patch](https://github.com/mihirlad55/dwm-anybar) patch and make sure your
-`config.h` contains the following
+patch](https://github.com/mihirlad55/dwm-anybar) and make sure your `config.h`
+contains the following
 ```
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
