@@ -55,7 +55,7 @@ static const int topbar             = 1;        /* 0 means bottom bar */
 static const int usealtbar          = 1;        /* 1 means use non-dwm status bar */
 static const char *altbarclass = "Polybar";     /* Alternate bar class name */
 ```
-If you're polybar is to be displayed on the bottom of the monitor, set `topbar`
+If your polybar is to be displayed on the bottom of the monitor, set `topbar`
 to `0`.
 
 Next, apply the [IPC patch](https://github.com/mihirlad55/dwm-ipc). There will
