@@ -30,7 +30,6 @@ addons:
         - libxcb1-dev
         - xutils-dev
         - i3-wm
-        - dwm
         - libjsoncpp-dev
         - libasound2-dev
         - libpulse-dev
